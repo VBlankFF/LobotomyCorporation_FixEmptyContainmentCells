@@ -13,8 +13,9 @@ namespace FixEmptyContainmentCells
 {
     /* Current approach: if there's less abnormities than there should be given the expansion level, add more in the missing slots
      * Which method to hijack? postfix CreatureManager.LoadData():
-     * All the info I need should be available, seems to happen before the UI and such load?
-     * How do I make sure an abno loads properly?
+     * It might be used I'm stupid though!
+     * 
+     * Prefix SefiraPanel.Init
      * 
      * Does this break with energy corp? (probably)
      * How to determine which abno to add?
@@ -25,34 +26,40 @@ namespace FixEmptyContainmentCells
     {
         public Harmony_Patch()
         {
-            HarmonyInstance HInstance = HarmonyInstance.Create("VBlankFF_FixMissingContainmentUnits");
-            HarmonyMethod fillEmptySlots = new HarmonyMethod(typeof(Harmony_Patch).GetMethod("FindEmptyCells"));
-            HInstance.Patch(typeof(CreatureManager).GetMethod("LoadData"), null, fillEmptySlots, null);
+            try
+            {
+                HarmonyInstance HInstance = HarmonyInstance.Create("VBlankFF_FixMissingContainmentUnits");
+                HarmonyMethod fillEmptySlots = new HarmonyMethod(typeof(Harmony_Patch).GetMethod("FillEmptyCells"));
+                HInstance.Patch(typeof(SefiraPanel).GetMethod("Init"), fillEmptySlots, null, null);
+                UnityEngine.Debug.Log("FixMissingContainmentUnits load success");
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.Log("FixMissingContainmentCells: An error has occured during load: " + e.ToString());
+            }
         }
-        public static void FillEmptyCells()
+        public static void FillEmptyCells(SefiraEnum sefira)
         {
             try
             {
                 UnityEngine.Debug.Log("FixMissingContainmentCells: Start");
+                Sefira sephirot = SefiraManager.instance.GetSefira(sefira);
                 int numCreatures;
-                foreach (Sefira sephirot in SefiraManager.instance.sefiraList)
+                if (!sephirot.activated || sephirot.sefiraEnum == SefiraEnum.DAAT)
                 {
-                    if (!sephirot.activated || sephirot.sefiraEnum == SefiraEnum.DAAT)
+                    return;
+                }
+                numCreatures = FindNumCreatures(sephirot);
+                for (int i = sephirot.creatureList.Count; i < numCreatures; i++)
+                {
+                    SefiraIsolate emptyRoom = sephirot.isolateManagement.GetNotUsed();
+                    if (emptyRoom is null)
                     {
+                        UnityEngine.Debug.Log("FixMissingContainmentCells: Detected missing abnormality in " + sephirot.name + " but there's no empty rooms? Skipping");
                         continue;
                     }
-                    numCreatures = FindNumCreatures(sephirot);
-                    for (int i = sephirot.creatureList.Count; i < numCreatures; i++)
-                    {
-                        SefiraIsolate emptyRoom = sephirot.isolateManagement.GetNotUsed();
-                        if (emptyRoom is null)
-                        {
-                            UnityEngine.Debug.Log("FixMissingContainmentCells: Detected missing abnormality in " + sephirot.name + " but there's no empty rooms? Skipping");
-                            continue;
-                        }
-                        CreatureModel addedCreature = CreatureManager.instance.AddCreature(GetRandomNewCreature(), emptyRoom, sephirot.indexString);
-                        UnityEngine.Debug.Log("FixMissingContainmentCells: Added " + addedCreature.GetUnitName() + " to " + sephirot.name);
-                    }
+                    CreatureModel addedCreature = CreatureManager.instance.AddCreature(GetRandomNewCreature(), emptyRoom, sephirot.indexString);
+                    UnityEngine.Debug.Log("FixMissingContainmentCells: Added " + addedCreature.GetUnitName() + " to " + sephirot.name);
                 }
                 UnityEngine.Debug.Log("FixMissingContainmentCells: Finished");
             }
@@ -78,7 +85,10 @@ namespace FixEmptyContainmentCells
         public static long GetRandomNewCreature()
         {
             List<long> newCreatures = new List<long>();
-            newCreatures = (List<long>)newCreatures.Concat(CreatureGenerateInfo.GetAll());
+            foreach (long i in CreatureGenerateInfo.GetAll())
+            {
+                newCreatures.Add(i);
+            }
             foreach (LcIdLong id in CreatureGenerateInfo.GetAll_Mod())
             {
                 newCreatures.Add(id.id);
