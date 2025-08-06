@@ -13,7 +13,7 @@ namespace FixEmptyContainmentCells
 {
     /* Current approach: if there's less abnormities than there should be given the expansion level, add more in the missing slots
      * Which method to hijack? postfix CreatureManager.LoadData():
-     * It might be used I'm stupid though!
+     * It might be used I'm not sure
      * 
      * Prefix SefiraPanel.Init
      * 
