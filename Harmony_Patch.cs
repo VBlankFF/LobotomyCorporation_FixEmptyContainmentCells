@@ -70,6 +70,39 @@ namespace FixEmptyContainmentCells
         }
         public static int FindNumCreatures(Sefira sephirot)
         {
+            // check for energy corp
+            foreach (Assembly assem in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assem.FullName.Contains("Qquickness_EnergyCo_MOD"))
+                {
+                    // can't confidently say how many abnos should be in an incomplete department
+                    if (sephirot.openLevel < 5)
+                    {
+                        return 0;
+                    }
+                    switch (sephirot.sefiraEnum)
+                    {
+                        case SefiraEnum.MALKUT:
+                            return 12;
+                        case SefiraEnum.YESOD:
+                        case SefiraEnum.NETZACH: 
+                        case SefiraEnum.HOD:
+                        case SefiraEnum.BINAH:
+                        case SefiraEnum.CHOKHMAH:
+                            return 8;
+                        case SefiraEnum.TIPERERTH1:
+                        case SefiraEnum.TIPERERTH2:
+                            return 10;
+                        case SefiraEnum.CHESED:
+                        case SefiraEnum.GEBURAH:
+                            return 7;
+                        case SefiraEnum.KETHER:
+                            return 20;
+                        default: return 0;
+                    }
+                }
+            }    
+            // no energy corp
             switch (sephirot.sefiraEnum)
             {
                 case SefiraEnum.TIPERERTH1:
@@ -106,7 +139,14 @@ namespace FixEmptyContainmentCells
             if (newCreatures.Count == 0)
             {
                 UnityEngine.Debug.Log("FixMissingContainmentCells: No unique creatures left");
-                return 100009L;
+                foreach (long i in CreatureGenerateInfo.GetAll())
+                {
+                    newCreatures.Add(i);
+                }
+                foreach (LcIdLong id in CreatureGenerateInfo.GetAll_Mod())
+                {
+                    newCreatures.Add(id.id);
+                }
             }
             return newCreatures[UnityEngine.Random.Range(0, newCreatures.Count)];
         }
